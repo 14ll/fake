@@ -37,13 +37,13 @@
       <label>Machados (ax):</label>
       <input type="number" id="ax" value="0">
       <label>Batedores (scout):</label>
-      <input type="number" id="scout" value="1">
+      <input type="number" id="scout" value="0">
       <label>Tropas Leves (light):</label>
       <input type="number" id="light" value="0">
       <label>Aríetes (ram):</label>
       <input type="number" id="ram" value="0">
       <label>Catapultas (cat):</label>
-      <input type="number" id="cat" value="13">
+      <input type="number" id="cat" value="0">
       <label>Coordenadas (uma por linha):</label>
       <textarea id="coords" rows="5"></textarea>
       <label>Tempo entre ataques (ms):</label>
