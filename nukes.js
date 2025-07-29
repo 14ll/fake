@@ -1,5 +1,5 @@
 (function () {
-  if (document.getElementById('Nukes-ui')) return;
+  if (document.getElementById('nukes-ui')) return;  // check certo (minusculo)
 
   const style = `
     #nukes-ui {
@@ -51,22 +51,22 @@
   styleElem.textContent = style;
   document.head.appendChild(styleElem);
 
-  const wrapper = document.createElement('div');
-  wrapper.innerHTML = html;
-  document.body.appendChild(wrapper);
+  // Coloca direto o html no body
+  document.body.insertAdjacentHTML('beforeend', html);
 
   document.getElementById('nukes-close').onclick = () => {
-    document.getElementById('nukes-ui').remove();
+    const ui = document.getElementById('nukes-ui');
+    if (ui) ui.remove();
   };
 
   document.getElementById('start-bot').onclick = function () {
-    const sp = parseInt(document.getElementById('sp').value);
-    const sw = parseInt(document.getElementById('sw').value);
-    const ax = parseInt(document.getElementById('ax').value);
-    const scout = parseInt(document.getElementById('scout').value);
-    const cat = parseInt(document.getElementById('cat').value);
+    const sp = parseInt(document.getElementById('sp').value) || 0;
+    const sw = parseInt(document.getElementById('sw').value) || 0;
+    const ax = parseInt(document.getElementById('ax').value) || 0;
+    const scout = parseInt(document.getElementById('scout').value) || 0;
+    const cat = parseInt(document.getElementById('cat').value) || 0;
     const coordsRaw = document.getElementById('coords').value;
-    const tempo = parseInt(document.getElementById('tempo').value);
+    const tempo = parseInt(document.getElementById('tempo').value) || 500;
     const coords = coordsRaw.split('\n').map(c => c.trim()).filter(c => c);
 
     alert("Bot iniciado com " + coords.length + " coordenadas.");
@@ -88,16 +88,30 @@
 
       console.log(`Enviando ataque para ${x}|${y}`);
 
-      document.getElementsByName('x')[0].value = x;
-      document.getElementsByName('y')[0].value = y;
-      document.getElementsByName('spy')[0].value = scout;
-      document.getElementsByName('catapult')[0].value = cat;
-      document.getElementsByName('spear')[0].value = sp;
-      document.getElementsByName('sword')[0].value = sw;
-      document.getElementsByName('axe')[0].value = ax;
-
+      // Valida que os campos existem antes de usar:
+      const xInput = document.getElementsByName('x')[0];
+      const yInput = document.getElementsByName('y')[0];
+      const spyInput = document.getElementsByName('spy')[0];
+      const catapultInput = document.getElementsByName('catapult')[0];
+      const spearInput = document.getElementsByName('spear')[0];
+      const swordInput = document.getElementsByName('sword')[0];
+      const axeInput = document.getElementsByName('axe')[0];
       const botao = document.querySelector("input[type='submit']");
-      if (botao) botao.click();
+
+      if (!xInput || !yInput || !spyInput || !catapultInput || !spearInput || !swordInput || !axeInput || !botao) {
+        alert("Erro: campos do formulário não encontrados!");
+        return;
+      }
+
+      xInput.value = x;
+      yInput.value = y;
+      spyInput.value = scout;
+      catapultInput.value = cat;
+      spearInput.value = sp;
+      swordInput.value = sw;
+      axeInput.value = ax;
+
+      botao.click();
 
       i++;
       setTimeout(enviarProxima, tempo);
