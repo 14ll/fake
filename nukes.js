@@ -1,5 +1,5 @@
 (function () {
-  if (document.getElementById('nukes-ui')) return;  // check certo (minusculo)
+  if (document.getElementById('Nukes-ui')) return;
 
   const style = `
     #nukes-ui {
@@ -37,6 +37,10 @@
       <input type="number" id="ax" value="0">
       <label>Batedores (scout):</label>
       <input type="number" id="scout" value="1">
+      <label>Tropas Leves (light):</label>
+      <input type="number" id="light" value="0">
+      <label>Aríetes (ram):</label>
+      <input type="number" id="ram" value="0">
       <label>Catapultas (cat):</label>
       <input type="number" id="cat" value="13">
       <label>Coordenadas (uma por linha):</label>
@@ -51,29 +55,31 @@
   styleElem.textContent = style;
   document.head.appendChild(styleElem);
 
-  // Coloca direto o html no body
-  document.body.insertAdjacentHTML('beforeend', html);
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = html;
+  document.body.appendChild(wrapper);
 
   document.getElementById('nukes-close').onclick = () => {
-    const ui = document.getElementById('nukes-ui');
-    if (ui) ui.remove();
+    document.getElementById('nukes-ui').remove();
   };
 
   document.getElementById('start-bot').onclick = function () {
-    const sp = parseInt(document.getElementById('sp').value) || 0;
-    const sw = parseInt(document.getElementById('sw').value) || 0;
-    const ax = parseInt(document.getElementById('ax').value) || 0;
-    const scout = parseInt(document.getElementById('scout').value) || 0;
-    const cat = parseInt(document.getElementById('cat').value) || 0;
+    const sp = parseInt(document.getElementById('sp').value);
+    const sw = parseInt(document.getElementById('sw').value);
+    const ax = parseInt(document.getElementById('ax').value);
+    const scout = parseInt(document.getElementById('scout').value);
+    const light = parseInt(document.getElementById('light').value);
+    const ram = parseInt(document.getElementById('ram').value);
+    const cat = parseInt(document.getElementById('cat').value);
     const coordsRaw = document.getElementById('coords').value;
-    const tempo = parseInt(document.getElementById('tempo').value) || 500;
+    const tempo = parseInt(document.getElementById('tempo').value);
     const coords = coordsRaw.split('\n').map(c => c.trim()).filter(c => c);
 
     alert("Bot iniciado com " + coords.length + " coordenadas.");
-    iniciarAtaques(sp, sw, ax, scout, cat, coords, tempo);
+    iniciarAtaques(sp, sw, ax, scout, light, ram, cat, coords, tempo);
   };
 
-  function iniciarAtaques(sp, sw, ax, scout, cat, coords, tempo) {
+  function iniciarAtaques(sp, sw, ax, scout, light, ram, cat, coords, tempo) {
     let i = 0;
 
     function enviarProxima() {
@@ -88,30 +94,18 @@
 
       console.log(`Enviando ataque para ${x}|${y}`);
 
-      // Valida que os campos existem antes de usar:
-      const xInput = document.getElementsByName('x')[0];
-      const yInput = document.getElementsByName('y')[0];
-      const spyInput = document.getElementsByName('spy')[0];
-      const catapultInput = document.getElementsByName('catapult')[0];
-      const spearInput = document.getElementsByName('spear')[0];
-      const swordInput = document.getElementsByName('sword')[0];
-      const axeInput = document.getElementsByName('axe')[0];
+      document.getElementsByName('x')[0].value = x;
+      document.getElementsByName('y')[0].value = y;
+      document.getElementsByName('spy')[0].value = scout;
+      document.getElementsByName('light')[0].value = light;
+      document.getElementsByName('ram')[0].value = ram;
+      document.getElementsByName('catapult')[0].value = cat;
+      document.getElementsByName('spear')[0].value = sp;
+      document.getElementsByName('sword')[0].value = sw;
+      document.getElementsByName('axe')[0].value = ax;
+
       const botao = document.querySelector("input[type='submit']");
-
-      if (!xInput || !yInput || !spyInput || !catapultInput || !spearInput || !swordInput || !axeInput || !botao) {
-        alert("Erro: campos do formulário não encontrados!");
-        return;
-      }
-
-      xInput.value = x;
-      yInput.value = y;
-      spyInput.value = scout;
-      catapultInput.value = cat;
-      spearInput.value = sp;
-      swordInput.value = sw;
-      axeInput.value = ax;
-
-      botao.click();
+      if (botao) botao.click();
 
       i++;
       setTimeout(enviarProxima, tempo);
