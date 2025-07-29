@@ -2,33 +2,33 @@
   if (document.getElementById('Nukes-ui')) return;
 
   const style = `
-    #fakesbito-ui {
+    #nukes-ui {
       position: fixed; top: 50px; right: 50px;
       background: #fff; border: 1px solid #ccc;
       padding: 15px; z-index: 9999; border-radius: 8px;
       width: 320px; font-family: sans-serif; box-shadow: 0 0 10px rgba(0,0,0,0.2);
     }
-    #fakesbito-ui input, #fakesbito-ui textarea {
+    #nukes-ui input, #nukes-ui textarea {
       width: 100%; margin-bottom: 10px; padding: 6px;
       border: 1px solid #ccc; border-radius: 4px;
       font-size: 14px;
     }
-    #fakesbito-ui button {
+    #nukes-ui button {
       padding: 8px 12px; background: #28a745; color: white;
       border: none; border-radius: 4px; cursor: pointer;
       width: 100%;
     }
-    #fakesbito-ui h3 { margin-top: 0; }
-    #fakesbito-close {
+    #nukes-ui h3 { margin-top: 0; }
+    #nukes-close {
       position: absolute; top: 5px; right: 10px; cursor: pointer;
       color: red; font-weight: bold;
     }
   `;
 
   const html = `
-    <div id="fakesbito-ui">
-      <div id="fakesbito-close">X</div>
-      <h3>Fakes Bito V5</h3>
+    <div id="nukes-ui">
+      <div id="nukes-close">X</div>
+      <h3>Nukes</h3>
       <label>Lanceiros (sp):</label>
       <input type="number" id="sp" value="0">
       <label>Espadas (sw):</label>
@@ -55,8 +55,8 @@
   wrapper.innerHTML = html;
   document.body.appendChild(wrapper);
 
-  document.getElementById('fakesbito-close').onclick = () => {
-    document.getElementById('fakesbito-ui').remove();
+  document.getElementById('nukes-close').onclick = () => {
+    document.getElementById('nukes-ui').remove();
   };
 
   document.getElementById('start-bot').onclick = function () {
