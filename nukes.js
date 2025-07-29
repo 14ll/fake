@@ -64,7 +64,7 @@
       <label>Catapultas (cat):</label>
       <input type="number" id="cat" value="13">
       <label>Coordenadas (uma por linha):</label>
-      <textarea id="coords" rows="5">495|548\n500|581</textarea>
+      <textarea id="coords" rows="5"> </textarea>
       <label>Tempo entre ataques (ms):</label>
       <input type="number" id="tempo" value="500">
       <button id="start-bot">Iniciar</button>
