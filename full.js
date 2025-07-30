@@ -70,7 +70,7 @@
 
   unitTypes.forEach(unit => {
     let iconCell = document.createElement("td");
-    iconCell.innerHTML = `<img src="/graphic/unit/unit_${unit}.png">`;
+    iconCell.innerHTML = `<img src="/graphic/unit_map/unit_${unit}.png">`;
     rowIcons.appendChild(iconCell);
 
     let labelCell = document.createElement("td");
