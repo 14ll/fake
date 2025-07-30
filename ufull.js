@@ -1,185 +1,170 @@
+// ==UserScript==
+// @name         Nukes Sender UI
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  Interface para envio automático de ataques com unidades personalizadas
+// @author       Rath
+// @match        *screen=place*
+// @grant        none
+// ==/UserScript==
+
 (function () {
-  if (document.getElementById('nukes-ui')) return;
+    'use strict';
 
-  const unitIcons = {
-    spear: '/graphic/unit_map/spear.png',
-    sword: '/graphic/unit_map/sword.png',
-    axe: '/graphic/unit_map/axe.png',
-    spy: '/graphic/unit_map/spy.png',
-    light: '/graphic/unit_map/light.png',
-    ram: '/graphic/unit_map/ram.png',
-    catapult: '/graphic/unit_map/catapult.png'
-  };
+    if (window.location.href.includes('place_confirm')) {
+        const confirmBtn = document.querySelector('input[type="submit"], button[type="submit"]');
+        if (confirmBtn) confirmBtn.click();
+        return;
+    }
 
-  const style = `
-    #nukes-ui {
-      position: fixed; top: 40px; left: 50%; transform: translateX(-50%);
-      background: #2c2c3b; color: #fff;
-      padding: 20px; border-radius: 12px;
-      z-index: 9999; font-family: sans-serif;
-      box-shadow: 0 0 15px rgba(0,0,0,0.5);
-      width: auto; min-width: 700px;
-    }
-    #nukes-ui h3 { margin-top: 0; margin-bottom: 16px; text-align: center; }
-    #nukes-close {
-      position: absolute; top: 8px; right: 12px;
-      color: #ff6b6b; cursor: pointer; font-weight: bold;
-    }
-    .troop-grid {
-      display: flex; gap: 12px; flex-wrap: wrap;
-      justify-content: center; margin-bottom: 16px;
-    }
-    .troop-box {
-      display: flex; flex-direction: column;
-      align-items: center; background: #3c3c4a;
-      padding: 8px; border-radius: 6px;
-    }
-    .troop-box img {
-      width: 32px; height: 32px; margin-bottom: 4px;
-    }
-    .troop-box .checkbox-label {
-      font-size: 11px; margin-top: 4px;
-    }
-    .troop-box input[type="number"] {
-      width: 60px; padding: 4px;
-      font-size: 13px; text-align: center;
-      border: 1px solid #555; border-radius: 4px;
-      margin-bottom: 4px;
-    }
-    .troop-box input[type="checkbox"] {
-      margin-top: 2px;
-    }
-    #coords, #tempo {
-      width: 100%; padding: 6px;
-      border: 1px solid #555; border-radius: 4px;
-      font-size: 14px; background: #1f1f2c; color: white;
-    }
-    #coords { height: 60px; margin-top: 10px; }
-    #repeats {
-      width: 100%; padding: 6px;
-      font-size: 14px; margin-top: 10px;
-      background: #1f1f2c; color: white;
-      border: 1px solid #555; border-radius: 4px;
-    }
-    #start-bot {
-      margin-top: 12px; width: 100%; padding: 8px;
-      background: #4CAF50; border: none; color: white;
-      border-radius: 6px; font-size: 15px; cursor: pointer;
-    }
-    #credit {
-      margin-top: 12px; text-align: center; font-size: 13px;
-      color: #aaa;
-    }
-  `;
+    // Interface já existe?
+    if (document.getElementById('nukes-interface')) return;
 
-  const html = `
-    <div id="nukes-ui">
-      <div id="nukes-close">X</div>
-      <h3>Nukes</h3>
-      <div class="troop-grid">
-        ${['spear','sword','axe','spy','light','ram','catapult'].map(unit => `
-          <div class="troop-box">
-            <img src="${unitIcons[unit]}" alt="${unit}">
-            <input type="number" id="${unit}" value="0">
-            <label class="checkbox-label">Todas</label>
-            <input type="checkbox" id="${unit}-all" title="Selecionar todas">
-          </div>`).join('')}
-      </div>
-      <label>Coordenadas (separadas por espaço ou nova linha):</label>
-      <textarea id="coords"></textarea>
-      <label>Intervalo entre ataques (ms):</label>
-      <input type="number" id="tempo" value="500">
-      <label>Numero de ataques por aldeia inimiga </label>
-      <input type="number" id="repeats" value="1" min="1">
-      <button id="start-bot">Iniciar</button>
-      <div id="credit">Created by Rath</div>
-    </div>
-  `;
+    const units = [
+        ['spear', 'Lança'],
+        ['sword', 'Espada'],
+        ['axe', 'Machado'],
+        ['archer', 'Arqueiro'],
+        ['spy', 'Batedor'],
+        ['light', 'Cavalaria Leve'],
+        ['marcher', 'Arqueiro a Cavalo'],
+        ['heavy', 'Cavalaria Pesada'],
+        ['ram', 'Aríete'],
+        ['catapult', 'Catapulta']
+    ];
 
-  const styleElem = document.createElement('style');
-  styleElem.textContent = style;
-  document.head.appendChild(styleElem);
+    const content = document.createElement('div');
+    content.id = 'nukes-interface';
+    content.style = 'position:fixed;top:10px;left:10px;background:#f2f2f2;border:2px solid #888;padding:10px;z-index:9999;font-size:12px;font-family:sans-serif;border-radius:10px;width:auto;max-width:90%;overflow:auto;';
 
-  const wrapper = document.createElement('div');
-  wrapper.innerHTML = html;
-  document.body.appendChild(wrapper);
+    const unitLine = document.createElement('div');
+    unitLine.style = 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:flex-end;';
 
-  document.getElementById('nukes-close').onclick = () => {
-    document.getElementById('nukes-ui').remove();
-  };
+    const unitInputs = {};
 
-  document.getElementById('start-bot').onclick = function () {
-    const unidades = ['spear','sword','axe','spy','light','ram','catapult'];
-    const tropas = {};
-    unidades.forEach(unit => {
-      const all = document.getElementById(`${unit}-all`).checked;
-      tropas[unit] = all ? -1 : parseInt(document.getElementById(unit).value);
+    units.forEach(([unit, label]) => {
+        const wrapper = document.createElement('div');
+        wrapper.style = 'display:flex;flex-direction:column;align-items:center;';
+
+        const img = document.createElement('img');
+        img.src = `/graphic/unit_map/${unit}.png`;
+        img.alt = label;
+        img.style = 'width:24px;height:24px;margin-bottom:2px;';
+
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.min = '0';
+        input.maxLength = '8';
+        input.style = 'width:55px;margin-bottom:2px;text-align:center;';
+        input.placeholder = '0';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+
+        const labelTodas = document.createElement('div');
+        labelTodas.textContent = 'Todas';
+        labelTodas.style = 'font-size:10px;margin-top:2px;';
+
+        unitInputs[unit] = { input, checkbox };
+
+        wrapper.appendChild(img);
+        wrapper.appendChild(input);
+        wrapper.appendChild(checkbox);
+        wrapper.appendChild(labelTodas);
+        unitLine.appendChild(wrapper);
     });
 
-    const coordsRaw = document.getElementById('coords').value;
-    const coords = coordsRaw.split(/[\s\n]+/).map(c => c.trim()).filter(c => c);
-    const tempo = parseInt(document.getElementById('tempo').value);
-    const repeats = parseInt(document.getElementById('repeats').value) || 1;
+    const coordInput = document.createElement('textarea');
+    coordInput.placeholder = 'Ex: 587|385 586|386 586|385';
+    coordInput.rows = 3;
+    coordInput.style = 'width:100%;margin-bottom:10px;resize:vertical;';
 
-    //alert("Bot iniciado com " + coords.length + " coordenadas.");
-    iniciarAtaques(tropas, coords, tempo, repeats);
-  };
+    const repeatLabel = document.createElement('label');
+    repeatLabel.textContent = 'Nº de ataques por coordenada: ';
+    const repeatInput = document.createElement('input');
+    repeatInput.type = 'number';
+    repeatInput.min = '1';
+    repeatInput.value = '1';
+    repeatInput.style = 'width:50px;margin-left:5px;margin-bottom:10px;';
 
-  function iniciarAtaques(tropas, coords, tempo, repeats) {
-    let i = 0, r = 0;
+    const sendBtn = document.createElement('button');
+    sendBtn.textContent = 'Enviar';
+    sendBtn.style = 'padding:6px 12px;font-weight:bold;margin-top:5px;';
 
-    function enviarProxima() {
-      if (i >= coords.length) {
-        alert("Todos os ataques enviados.");
-        return;
-      }
+    const info = document.createElement('div');
+    info.innerHTML = '<br><div>Created by Rath</div><div>Modified by ChatGPT</div>';
 
-      const [x, y] = coords[i].split('|');
-      if (!x || !y) {
-        i++; r = 0;
-        setTimeout(enviarProxima, tempo);
-        return;
-      }
+    sendBtn.onclick = () => {
+        const coords = coordInput.value.trim().split(/\s+/);
+        const ataquesPorCoord = parseInt(repeatInput.value) || 1;
 
-      document.forms[0].x.value = x;
-      document.forms[0].y.value = y;
+        let index = 0;
 
-      let unidadesSuficientes = false;
+        function enviarProximo() {
+            if (index >= coords.length) {
+                alert('Ataques enviados.');
+                return;
+            }
 
-      for (const [unit, value] of Object.entries(tropas)) {
-        const input = document.forms[0][unit];
-        if (!input) continue;
+            const coord = coords[index].split('|');
+            const form = document.forms[0];
+            if (!form) return;
 
-        if (value === -1) {
-          const max = parseInt(input.parentElement.textContent.match(/\((\d+)\)/)?.[1] || 0);
-          if (max > 0) {
-            input.value = max;
-            unidadesSuficientes = true;
-          }
-        } else {
-          input.value = value;
-          if (value > 0) unidadesSuficientes = true;
+            form.x.value = coord[0];
+            form.y.value = coord[1];
+
+            // Limpar campos
+            units.forEach(([unit]) => {
+                const val = unitInputs[unit].checkbox.checked
+                    ? parseInt(document.getElementById(`units_entry_all_${unit}`)?.textContent) || 0
+                    : parseInt(unitInputs[unit].input.value) || 0;
+
+                if (form[unit]) form[unit].value = val;
+            });
+
+            // Verifica se há tropas suficientes (se zero em todos, salta)
+            const total = units.reduce((acc, [unit]) => {
+                return acc + (parseInt(form[unit]?.value) || 0);
+            }, 0);
+
+            if (total === 0) {
+                index++;
+                enviarProximo();
+                return;
+            }
+
+            // Enviar ataque
+            form.submit();
         }
-      }
 
-      if (!unidadesSuficientes) {
-        i++; r = 0;
-        setTimeout(enviarProxima, tempo);
-        return;
-      }
+        // Enviar múltiplos por coordenada
+        function repetirAtaques() {
+            let rep = 0;
 
-      const btn = document.forms[0].attack;
-      if (btn) btn.click();
+            function enviarRep() {
+                if (rep < ataquesPorCoord) {
+                    enviarProximo();
+                    rep++;
+                    setTimeout(enviarRep, 1000);
+                } else {
+                    index++;
+                    rep = 0;
+                    if (index < coords.length) setTimeout(repetirAtaques, 1000);
+                }
+            }
 
-      r++;
-      if (r >= repeats) {
-        i++; r = 0;
-      }
+            enviarRep();
+        }
 
-      setTimeout(enviarProxima, tempo);
-    }
+        repetirAtaques();
+    };
 
-    enviarProxima();
-  }
+    content.appendChild(unitLine);
+    content.appendChild(coordInput);
+    content.appendChild(repeatLabel);
+    repeatLabel.appendChild(repeatInput);
+    content.appendChild(sendBtn);
+    content.appendChild(info);
+
+    document.body.appendChild(content);
 })();
-
