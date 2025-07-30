@@ -105,7 +105,7 @@
     closeBtn.onclick = () => content.remove();
 
     const info = document.createElement('div');
-    info.innerHTML = '<br><div>Created by Rath</div>';
+    info.innerHTML = '<br><div>Created by Rath</div><div>Modified by ChatGPT</div>';
 
     function getTotalUnits(unit) {
         const el = document.getElementById(`units_entry_all_${unit}`);
