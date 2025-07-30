@@ -16,17 +16,13 @@
     }
 
     if (window.location.href.includes('place_confirm')) {
-        // Página de confirmação, clique automático no botão submit
         setTimeout(() => {
             const confirmBtn = document.querySelector('input[type="submit"], button[type="submit"]');
-            if (confirmBtn) {
-                confirmBtn.click();
-            }
+            if (confirmBtn) confirmBtn.click();
         }, 500);
         return;
     }
 
-    // Se estamos no envio (place) e existe estado salvo, processar o próximo ataque
     const savedState = loadState();
     if (window.location.href.includes('screen=place') && savedState) {
         const form = document.forms[0];
@@ -51,7 +47,6 @@
         form.x.value = coord[0];
         form.y.value = coord[1];
 
-        // Preencher unidades
         let totalUnits = 0;
         Object.entries(savedState.units).forEach(([unit, qty]) => {
             if (form[unit]) {
@@ -61,7 +56,6 @@
         });
 
         if (totalUnits === 0) {
-            // Pular coordenada vazia
             savedState.currentCoordIndex++;
             savedState.currentRepeatIndex = 0;
             saveState(savedState);
@@ -69,7 +63,6 @@
             return;
         }
 
-        // Enviar ataque
         savedState.currentRepeatIndex++;
         if (savedState.currentRepeatIndex >= savedState.repeatCount) {
             savedState.currentCoordIndex++;
@@ -80,7 +73,6 @@
         return;
     }
 
-    // Interface só se ainda não existir
     if (document.getElementById('nukes-interface')) return;
 
     const units = [
@@ -98,7 +90,7 @@
 
     const content = document.createElement('div');
     content.id = 'nukes-interface';
-    content.style = 'position:fixed;top:10px;left:10px;background:#f2f2f2;border:2px solid #888;padding:10px;z-index:9999;font-size:12px;font-family:sans-serif;border-radius:10px;width:auto;max-width:90%;overflow:auto;max-height:90vh;';
+    content.style = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);background:#f2f2f2;border:2px solid #888;padding:10px;z-index:9999;font-size:12px;font-family:sans-serif;border-radius:10px;width:auto;max-width:90%;max-height:90vh;overflow:auto;';
 
     const unitLine = document.createElement('div');
     unitLine.style = 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:flex-end;';
@@ -163,6 +155,18 @@
     const info = document.createElement('div');
     info.innerHTML = '<br><div>Created by Rath</div><div>Modified by ChatGPT</div>';
 
+    function getTotalUnits(unit) {
+        const el = document.getElementById(`units_entry_all_${unit}`);
+        if (el) return parseInt(el.textContent) || 0;
+
+        const row = document.querySelector(`tr.units > td.${unit}`);
+        if (row) {
+            const val = parseInt(row.textContent.replace(/\D/g, ''));
+            if (!isNaN(val)) return val;
+        }
+        return 0;
+    }
+
     sendBtn.onclick = () => {
         const coordsRaw = coordInput.value.trim();
         if (!coordsRaw) {
@@ -182,9 +186,7 @@
             const useAll = unitInputs[unit].checkbox.checked;
             let qty = 0;
             if (useAll) {
-                // Pegar quantidade total disponível na página, geralmente no id units_entry_all_UNIT
-                const el = document.getElementById(`units_entry_all_${unit}`);
-                qty = el ? parseInt(el.textContent) || 0 : 0;
+                qty = getTotalUnits(unit);
             } else {
                 qty = parseInt(unitInputs[unit].input.value) || 0;
             }
