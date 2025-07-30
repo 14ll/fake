@@ -1,81 +1,12 @@
 (function () {
     'use strict';
 
-    const STORAGE_KEY = 'nukes_sender_state';
-
-    function saveState(state) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    }
-
-    function loadState() {
-        try {
-            return JSON.parse(localStorage.getItem(STORAGE_KEY));
-        } catch {
-            return null;
-        }
-    }
-
-    function clearState() {
-        localStorage.removeItem(STORAGE_KEY);
-    }
-
-    // Se está na tela de confirmação, envia automaticamente
     if (window.location.href.includes('place_confirm')) {
-        setTimeout(() => {
-            const btn = document.querySelector('input[type=submit], button[type=submit]');
-            if (btn) btn.click();
-        }, 500);
+        const confirmBtn = document.querySelector('input[type="submit"], button[type="submit"]');
+        if (confirmBtn) confirmBtn.click();
         return;
     }
 
-    // Se temos estado salvo, estamos em execução automática
-    const saved = loadState();
-    if (window.location.href.includes('screen=place') && saved) {
-        const form = document.forms[0];
-        if (!form) {
-            alert('Formulário não encontrado');
-            clearState();
-            return;
-        }
-
-        const coord = saved.coords[saved.currentCoordIndex].split('|');
-        if (coord.length !== 2) {
-            alert('Coordenada inválida');
-            clearState();
-            return;
-        }
-
-        form.x.value = coord[0];
-        form.y.value = coord[1];
-
-        let total = 0;
-        for (const [unit, qty] of Object.entries(saved.units)) {
-            if (form[unit]) {
-                form[unit].value = qty;
-                total += qty;
-            }
-        }
-
-        if (total === 0) {
-            saved.currentCoordIndex++;
-            saved.currentRepeatIndex = 0;
-            saveState(saved);
-            window.location.reload();
-            return;
-        }
-
-        saved.currentRepeatIndex++;
-        if (saved.currentRepeatIndex >= saved.repeatCount) {
-            saved.currentCoordIndex++;
-            saved.currentRepeatIndex = 0;
-        }
-
-        saveState(saved);
-        form.submit();
-        return;
-    }
-
-    // Já existe a interface?
     if (document.getElementById('nukes-interface')) return;
 
     const units = [
@@ -91,7 +22,6 @@
         ['catapult', 'Catapulta']
     ];
 
-    // Criação da interface
     const content = document.createElement('div');
     content.id = 'nukes-interface';
     content.style = `
@@ -114,7 +44,6 @@
 
     const unitLine = document.createElement('div');
     unitLine.style = 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:flex-end;';
-
     const unitInputs = {};
 
     units.forEach(([unit, label]) => {
@@ -135,7 +64,7 @@
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.title = 'Usar todas unidades disponíveis';
+        checkbox.title = 'Usar todas';
 
         const labelTodas = document.createElement('div');
         labelTodas.textContent = 'Todas';
@@ -164,7 +93,6 @@
     repeatInput.min = '1';
     repeatInput.value = '1';
     repeatInput.style = 'width:50px;margin-left:5px;';
-
     repeatLabel.appendChild(repeatInput);
 
     const sendBtn = document.createElement('button');
@@ -174,82 +102,77 @@
     const closeBtn = document.createElement('button');
     closeBtn.textContent = 'Fechar';
     closeBtn.style = 'padding:6px 12px;font-weight:bold;margin-top:5px;margin-left:10px;cursor:pointer;';
-    closeBtn.onclick = () => {
-        content.remove();
-        clearState();
-    };
+    closeBtn.onclick = () => content.remove();
 
     const info = document.createElement('div');
-    info.innerHTML = '<br><div>Created by Rath</div>;
+    info.innerHTML = '<br><div>Created by Rath</div>';
 
     function getTotalUnits(unit) {
-        let el = document.getElementById(`units_entry_all_${unit}`);
-        if (el) return parseInt(el.textContent) || 0;
-        el = document.querySelector(`tr.units > td.${unit}`);
-        if (el) {
-            const v = parseInt(el.textContent.replace(/\D/g, ''));
-            if (!isNaN(v)) return v;
-        }
-        return 0;
+        const el = document.getElementById(`units_entry_all_${unit}`);
+        return el ? parseInt(el.textContent) || 0 : 0;
     }
 
     sendBtn.onclick = () => {
-        const coordsRaw = coordInput.value.trim();
-        if (!coordsRaw) {
-            alert('Por favor, insira as coordenadas.');
+        const coords = coordInput.value.trim().split(/\s+/);
+        const repeat = parseInt(repeatInput.value) || 1;
+
+        if (!coords.length || coords[0] === '') {
+            alert('Insira pelo menos uma coordenada.');
             return;
         }
 
-        const coords = coordsRaw.split(/\s+/);
-        const repeatCount = parseInt(repeatInput.value);
+        let currentCoord = 0;
+        let rep = 0;
 
-        if (isNaN(repeatCount) || repeatCount < 1) {
-            alert('Número de ataques inválido.');
-            return;
-        }
-
-        const unitsQuant = {};
-        let totalUnits = 0;
-
-        for (const [unit] of units) {
-            const useAll = unitInputs[unit].checkbox.checked;
-            let qty = 0;
-
-            if (useAll) {
-                qty = getTotalUnits(unit);
-            } else {
-                qty = parseInt(unitInputs[unit].input.value) || 0;
+        function enviarAtaque() {
+            if (currentCoord >= coords.length) {
+                alert('Todos os ataques foram enviados.');
+                return;
             }
 
-            unitsQuant[unit] = qty;
-            totalUnits += qty;
+            const [x, y] = coords[currentCoord].split('|');
+            const form = document.forms[0];
+
+            if (!form || !form.x || !form.y) {
+                alert('Formulário inválido.');
+                return;
+            }
+
+            form.x.value = x;
+            form.y.value = y;
+
+            let total = 0;
+            units.forEach(([unit]) => {
+                const { input, checkbox } = unitInputs[unit];
+                let qty = checkbox.checked ? getTotalUnits(unit) : parseInt(input.value) || 0;
+                if (form[unit]) {
+                    form[unit].value = qty;
+                    total += qty;
+                }
+            });
+
+            if (total === 0) {
+                alert('Informe ao menos uma unidade para enviar.');
+                return;
+            }
+
+            rep++;
+            if (rep >= repeat) {
+                currentCoord++;
+                rep = 0;
+            }
+
+            form.submit();
         }
 
-        if (totalUnits === 0) {
-            alert('Informe ao menos uma unidade para enviar.');
-            return;
-        }
-
-        const state = {
-            coords,
-            repeatCount,
-            currentCoordIndex: 0,
-            currentRepeatIndex: 0,
-            units: unitsQuant
-        };
-
-        saveState(state);
-        alert('Iniciando envio automático. A página será recarregada.');
-        window.location.reload();
+        enviarAtaque();
     };
 
-    // Montar interface
     content.appendChild(unitLine);
     content.appendChild(coordInput);
     content.appendChild(repeatLabel);
     content.appendChild(sendBtn);
     content.appendChild(closeBtn);
     content.appendChild(info);
-
     document.body.appendChild(content);
 })();
