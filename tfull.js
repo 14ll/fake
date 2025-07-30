@@ -6,73 +6,76 @@
     function saveState(state) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
+
     function loadState() {
-        const s = localStorage.getItem(STORAGE_KEY);
-        if (!s) return null;
-        try { return JSON.parse(s); } catch { return null; }
+        try {
+            return JSON.parse(localStorage.getItem(STORAGE_KEY));
+        } catch {
+            return null;
+        }
     }
+
     function clearState() {
         localStorage.removeItem(STORAGE_KEY);
     }
 
+    // Se está na tela de confirmação, envia automaticamente
     if (window.location.href.includes('place_confirm')) {
         setTimeout(() => {
-            const confirmBtn = document.querySelector('input[type="submit"], button[type="submit"]');
-            if (confirmBtn) confirmBtn.click();
+            const btn = document.querySelector('input[type=submit], button[type=submit]');
+            if (btn) btn.click();
         }, 500);
         return;
     }
 
-    const savedState = loadState();
-    if (window.location.href.includes('screen=place') && savedState) {
+    // Se temos estado salvo, estamos em execução automática
+    const saved = loadState();
+    if (window.location.href.includes('screen=place') && saved) {
         const form = document.forms[0];
         if (!form) {
-            alert('Formulário não encontrado. Abortando.');
+            alert('Formulário não encontrado');
             clearState();
             return;
         }
 
-        if (savedState.currentCoordIndex >= savedState.coords.length) {
-            alert('Todos os ataques enviados.');
-            clearState();
-            return;
-        }
-
-        const coord = savedState.coords[savedState.currentCoordIndex].split('|');
+        const coord = saved.coords[saved.currentCoordIndex].split('|');
         if (coord.length !== 2) {
-            alert('Coordenada inválida. Abortando.');
+            alert('Coordenada inválida');
             clearState();
             return;
         }
+
         form.x.value = coord[0];
         form.y.value = coord[1];
 
-        let totalUnits = 0;
-        Object.entries(savedState.units).forEach(([unit, qty]) => {
+        let total = 0;
+        for (const [unit, qty] of Object.entries(saved.units)) {
             if (form[unit]) {
                 form[unit].value = qty;
-                totalUnits += qty;
+                total += qty;
             }
-        });
+        }
 
-        if (totalUnits === 0) {
-            savedState.currentCoordIndex++;
-            savedState.currentRepeatIndex = 0;
-            saveState(savedState);
+        if (total === 0) {
+            saved.currentCoordIndex++;
+            saved.currentRepeatIndex = 0;
+            saveState(saved);
             window.location.reload();
             return;
         }
 
-        savedState.currentRepeatIndex++;
-        if (savedState.currentRepeatIndex >= savedState.repeatCount) {
-            savedState.currentCoordIndex++;
-            savedState.currentRepeatIndex = 0;
+        saved.currentRepeatIndex++;
+        if (saved.currentRepeatIndex >= saved.repeatCount) {
+            saved.currentCoordIndex++;
+            saved.currentRepeatIndex = 0;
         }
-        saveState(savedState);
+
+        saveState(saved);
         form.submit();
         return;
     }
 
+    // Já existe a interface?
     if (document.getElementById('nukes-interface')) return;
 
     const units = [
@@ -88,9 +91,26 @@
         ['catapult', 'Catapulta']
     ];
 
+    // Criação da interface
     const content = document.createElement('div');
     content.id = 'nukes-interface';
-    content.style = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);background:#f2f2f2;border:2px solid #888;padding:10px;z-index:9999;font-size:12px;font-family:sans-serif;border-radius:10px;width:auto;max-width:90%;max-height:90vh;overflow:auto;';
+    content.style = `
+        position:fixed;
+        top:50%;
+        left:50%;
+        transform:translate(-50%, -50%);
+        background:#f2f2f2;
+        border:2px solid #888;
+        padding:10px;
+        z-index:9999;
+        font-size:12px;
+        font-family:sans-serif;
+        border-radius:10px;
+        width:auto;
+        max-width:90%;
+        max-height:90vh;
+        overflow:auto;
+    `;
 
     const unitLine = document.createElement('div');
     unitLine.style = 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:flex-end;';
@@ -115,7 +135,7 @@
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.title = 'Usar quantidade total disponível';
+        checkbox.title = 'Usar todas unidades disponíveis';
 
         const labelTodas = document.createElement('div');
         labelTodas.textContent = 'Todas';
@@ -125,7 +145,6 @@
         wrapper.appendChild(input);
         wrapper.appendChild(checkbox);
         wrapper.appendChild(labelTodas);
-
         unitLine.appendChild(wrapper);
 
         unitInputs[unit] = { input, checkbox };
@@ -152,17 +171,24 @@
     sendBtn.textContent = 'Enviar';
     sendBtn.style = 'padding:6px 12px;font-weight:bold;margin-top:5px;cursor:pointer;';
 
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Fechar';
+    closeBtn.style = 'padding:6px 12px;font-weight:bold;margin-top:5px;margin-left:10px;cursor:pointer;';
+    closeBtn.onclick = () => {
+        content.remove();
+        clearState();
+    };
+
     const info = document.createElement('div');
     info.innerHTML = '<br><div>Created by Rath</div><div>Modified by ChatGPT</div>';
 
     function getTotalUnits(unit) {
-        const el = document.getElementById(`units_entry_all_${unit}`);
+        let el = document.getElementById(`units_entry_all_${unit}`);
         if (el) return parseInt(el.textContent) || 0;
-
-        const row = document.querySelector(`tr.units > td.${unit}`);
-        if (row) {
-            const val = parseInt(row.textContent.replace(/\D/g, ''));
-            if (!isNaN(val)) return val;
+        el = document.querySelector(`tr.units > td.${unit}`);
+        if (el) {
+            const v = parseInt(el.textContent.replace(/\D/g, ''));
+            if (!isNaN(v)) return v;
         }
         return 0;
     }
@@ -173,8 +199,10 @@
             alert('Por favor, insira as coordenadas.');
             return;
         }
+
         const coords = coordsRaw.split(/\s+/);
         const repeatCount = parseInt(repeatInput.value);
+
         if (isNaN(repeatCount) || repeatCount < 1) {
             alert('Número de ataques inválido.');
             return;
@@ -182,17 +210,21 @@
 
         const unitsQuant = {};
         let totalUnits = 0;
+
         for (const [unit] of units) {
             const useAll = unitInputs[unit].checkbox.checked;
             let qty = 0;
+
             if (useAll) {
                 qty = getTotalUnits(unit);
             } else {
                 qty = parseInt(unitInputs[unit].input.value) || 0;
             }
+
             unitsQuant[unit] = qty;
             totalUnits += qty;
         }
+
         if (totalUnits === 0) {
             alert('Informe ao menos uma unidade para enviar.');
             return;
@@ -211,10 +243,12 @@
         window.location.reload();
     };
 
+    // Montar interface
     content.appendChild(unitLine);
     content.appendChild(coordInput);
     content.appendChild(repeatLabel);
     content.appendChild(sendBtn);
+    content.appendChild(closeBtn);
     content.appendChild(info);
 
     document.body.appendChild(content);
