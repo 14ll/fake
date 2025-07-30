@@ -1,145 +1,151 @@
-(function () {
-  if (document.getElementById('nukes-ui')) return;
+// ==UserScript==
+// @name         TW Interface com Ataque Direto
+// @namespace    https://tribalwars.com/
+// @version      1.0
+// @description  Interface com ícones, seleção de tropas e envio automático
+// @author       Rath
+// @match        *://*.tribalwars.*/game.php*screen=place*
+// @grant        none
+// ==/UserScript==
 
-  const unitIcons = {
-    spear: 'https://dspt.innogamescdn.com/8.215/37382/graphic/unit/unit_spear.png',
-    sword: 'https://dspt.innogamescdn.com/8.215/37382/graphic/unit/unit_sword.png',
-    axe: 'https://dspt.innogamescdn.com/8.215/37382/graphic/unit/unit_axe.png',
-    spy: 'https://dspt.innogamescdn.com/8.215/37382/graphic/unit/unit_spy.png',
-    light: 'https://dspt.innogamescdn.com/8.215/37382/graphic/unit/unit_light.png',
-    ram: 'https://dspt.innogamescdn.com/8.215/37382/graphic/unit/unit_ram.png',
-    catapult: 'https://dspt.innogamescdn.com/8.215/37382/graphic/unit/unit_catapult.png'
+(function() {
+  'use strict';
+
+  const unitTypes = ["spear", "sword", "axe", "archer", "spy", "light", "marcher", "heavy", "ram", "catapult"];
+  const unitNames = {
+    spear: "Lança",
+    sword: "Espada",
+    axe: "Machado",
+    archer: "Arqueiro",
+    spy: "Espião",
+    light: "LC",
+    marcher: "Arq. Cav.",
+    heavy: "PC",
+    ram: "Ariete",
+    catapult: "Cata"
   };
 
-  const style = `
-    #nukes-ui {
-      position: fixed; top: 40px; left: 50%; transform: translateX(-50%);
-      background: #2c2c3b; color: #fff;
-      padding: 20px; border-radius: 12px;
-      z-index: 9999; font-family: sans-serif;
-      box-shadow: 0 0 15px rgba(0,0,0,0.5);
-      width: auto; min-width: 700px;
+  const style = document.createElement('style');
+  style.innerHTML = `
+    #tw-toolbox {
+      background: #f4f4f4;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #999;
+      border-radius: 8px;
+      font-size: 12px;
     }
-    #nukes-ui h3 { margin-top: 0; margin-bottom: 16px; text-align: center; }
-    #nukes-close {
-      position: absolute; top: 8px; right: 12px;
-      color: #ff6b6b; cursor: pointer; font-weight: bold;
+    #tw-toolbox table {
+      width: 100%;
+      text-align: center;
     }
-    .troop-grid {
-      display: flex; gap: 12px; flex-wrap: wrap;
-      justify-content: center; margin-bottom: 16px;
+    #tw-toolbox input[type='text'] {
+      width: 60px;
+      text-align: center;
     }
-    .troop-box {
-      display: flex; flex-direction: column;
-      align-items: center; background: #3c3c4a;
-      padding: 8px; border-radius: 6px;
+    #tw-toolbox img {
+      width: 30px;
     }
-    .troop-box img {
-      width: 32px; height: 32px; margin-bottom: 4px;
+    #tw-toolbox .coord-input {
+      width: 100%;
+      margin-top: 10px;
     }
-    .troop-box .checkbox-label {
-      font-size: 11px; margin-top: 4px;
-    }
-    .troop-box input[type="number"] {
-      width: 60px; padding: 4px;
-      font-size: 13px; text-align: center;
-      border: 1px solid #555; border-radius: 4px;
-      margin-bottom: 4px;
-    }
-    .troop-box input[type="checkbox"] {
-      margin-top: 2px;
-    }
-    #coords, #tempo {
-      width: 100%; padding: 6px;
-      border: 1px solid #555; border-radius: 4px;
-      font-size: 14px; background: #1f1f2c; color: white;
-    }
-    #coords { height: 60px; margin-top: 10px; }
-    #start-bot {
-      margin-top: 12px; width: 100%; padding: 8px;
-      background: #4CAF50; border: none; color: white;
-      border-radius: 6px; font-size: 15px; cursor: pointer;
-    }
-    #credit {
-      margin-top: 12px; text-align: center; font-size: 13px;
-      color: #aaa;
+    #tw-toolbox .footer {
+      margin-top: 10px;
+      font-size: 10px;
+      text-align: center;
+      color: #555;
     }
   `;
+  document.head.appendChild(style);
 
-  const html = `
-    <div id="nukes-ui">
-      <div id="nukes-close">X</div>
-      <h3>Nukes</h3>
-      <div class="troop-grid">
-        ${['spear','sword','axe','spy','light','ram','catapult'].map(unit => `
-          <div class="troop-box">
-            <img src="${unitIcons[unit]}" alt="${unit}">
-            <input type="number" id="${unit}" value="0">
-            <label class="checkbox-label">All</label>
-            <input type="checkbox" id="${unit}-all" title="Selecionar todas">
-          </div>`).join('')}
-      </div>
-      <label>Coordenadas (separadas por espaço ou nova linha):</label>
-      <textarea id="coords"></textarea>
-      <label>Intervalo entre ataques (ms):</label>
-      <input type="number" id="tempo" value="500">
-      <button id="start-bot">Iniciar</button>
-      <div id="credit">Created by Rath</div>
+  const container = document.createElement("div");
+  container.id = "tw-toolbox";
+
+  const table = document.createElement("table");
+  let rowIcons = document.createElement("tr");
+  let rowCheckboxLabels = document.createElement("tr");
+  let rowInputs = document.createElement("tr");
+  let rowCheckbox = document.createElement("tr");
+
+  unitTypes.forEach(unit => {
+    let iconCell = document.createElement("td");
+    iconCell.innerHTML = `<img src="/graphic/unit/unit_${unit}.png">`;
+    rowIcons.appendChild(iconCell);
+
+    let labelCell = document.createElement("td");
+    labelCell.innerHTML = `<b>Todas</b>`;
+    rowCheckboxLabels.appendChild(labelCell);
+
+    let inputCell = document.createElement("td");
+    inputCell.innerHTML = `<input type='text' id='${unit}_input' maxlength='8'>`;
+    rowInputs.appendChild(inputCell);
+
+    let checkCell = document.createElement("td");
+    checkCell.innerHTML = `<input type='checkbox' id='${unit}_checkbox'>`;
+    rowCheckbox.appendChild(checkCell);
+  });
+
+  table.appendChild(rowIcons);
+  table.appendChild(rowCheckboxLabels);
+  table.appendChild(rowInputs);
+  table.appendChild(rowCheckbox);
+  container.appendChild(table);
+
+  container.innerHTML += `
+    <div style='margin-top:10px;'>
+      <textarea id='coordenadas' rows='2' class='coord-input' placeholder='Insere coordenadas separadas por espaço (ex: 500|500 501|500)'></textarea>
     </div>
+    <button id='btnEnviarAtaques'>Enviar</button>
+    <div class='footer'>Created by Rath<br>Versão UI Landscape</div>
   `;
 
-  const styleElem = document.createElement('style');
-  styleElem.textContent = style;
-  document.head.appendChild(styleElem);
+  const content = document.getElementById("content_value") || document.body;
+  content.insertBefore(container, content.firstChild);
 
-  const wrapper = document.createElement('div');
-  wrapper.innerHTML = html;
-  document.body.appendChild(wrapper);
+  document.getElementById("btnEnviarAtaques").addEventListener("click", () => iniciarAtaques());
 
-  document.getElementById('nukes-close').onclick = () => {
-    document.getElementById('nukes-ui').remove();
-  };
+  function iniciarAtaques() {
+    const coordInput = document.getElementById('coordenadas');
+    const coords = coordInput.value.trim().split(/\s+/);
+    if (!coords.length) return alert("Insere pelo menos uma coordenada.");
 
-  document.getElementById('start-bot').onclick = function () {
-    const unidades = ['spear','sword','axe','spy','light','ram','catapult'];
-    const tropas = {};
-    unidades.forEach(unit => {
-      const all = document.getElementById(`${unit}-all`).checked;
-      tropas[unit] = all ? -1 : parseInt(document.getElementById(unit).value);
-    });
+    let currentCoordIndex = 0;
 
-    const coordsRaw = document.getElementById('coords').value;
-    const coords = coordsRaw.split(/[\s\n]+/).map(c => c.trim()).filter(c => c);
-    const tempo = parseInt(document.getElementById('tempo').value);
-
-    // alert("Bot iniciado com " + coords.length + " coordenadas.");
-    iniciarAtaques(tropas, coords, tempo);
-  };
-
-  function iniciarAtaques(tropas, coords, tempo) {
-    let i = 0;
     function enviarProxima() {
-      if (i >= coords.length) {
-        alert("Todos os ataques enviados.");
+      if (currentCoordIndex >= coords.length) {
+        alert("Todos os ataques foram enviados. Próxima aldeia...");
+        document.getElementById("village_switch_right").click();
         return;
       }
-      const [x, y] = coords[i].split('|');
-      if (!x || !y) return;
 
-      document.getElementsByName('x')[0].value = x;
-      document.getElementsByName('y')[0].value = y;
+      const [x, y] = coords[currentCoordIndex].split("|");
+      const form = document.forms[0];
+      if (!form) return alert("Formulário de ataque não encontrado.");
 
-      for (const [unit, value] of Object.entries(tropas)) {
-        const input = document.getElementsByName(unit)[0];
-        if (input) input.value = value >= 0 ? value : input.max || 0;
+      form.x.value = x;
+      form.y.value = y;
+
+      unitTypes.forEach(unit => {
+        const checkbox = document.getElementById(`${unit}_checkbox`);
+        const input = document.getElementById(`${unit}_input`);
+        const available = parseInt(document.getElementById(`units_entry_all_${unit}`)?.innerText || "0");
+        if (checkbox?.checked) {
+          input.value = available;
+        }
+        form[unit].value = input.value || "";
+      });
+
+      const attackBtn = document.querySelector("input[type='submit'][name='attack']");
+      if (attackBtn) {
+        attackBtn.click();
+        currentCoordIndex++;
+        setTimeout(enviarProxima, 1000);
+      } else {
+        alert("Botão de ataque não encontrado.");
       }
-
-      const botao = document.querySelector("input[type='submit']");
-      if (botao) botao.click();
-
-      i++;
-      setTimeout(enviarProxima, tempo);
     }
+
     enviarProxima();
   }
 })();
