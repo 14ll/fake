@@ -1,53 +1,100 @@
-
 (function () {
-  if (document.getElementById('Nukes-ui')) return;
+  if (document.getElementById('nukes-ui')) return;
 
   const style = `
     #nukes-ui {
-      position: fixed; top: 50px; right: 50px;
-      background: #fff; border: 1px solid #ccc;
-      padding: 15px; z-index: 9999; border-radius: 8px;
-      width: 320px; font-family: sans-serif; box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #2c2f4a;
+      border: 2px solid #555;
+      border-radius: 10px;
+      padding: 20px;
+      z-index: 9999;
+      width: 450px;
+      font-family: Arial, sans-serif;
+      color: #fff;
+      box-shadow: 0 0 15px rgba(0,0,0,0.6);
     }
-    #nukes-ui input, #nukes-ui textarea {
-      width: 100%; margin-bottom: 10px; padding: 6px;
-      border: 1px solid #ccc; border-radius: 4px;
+    #nukes-ui h3 {
+      margin-top: 0;
+      text-align: center;
+      color: #90caf9;
+    }
+    #nukes-ui label {
+      display: block;
+      margin-bottom: 4px;
       font-size: 14px;
     }
-    #nukes-ui button {
-      padding: 8px 12px; background: #28a745; color: white;
-      border: none; border-radius: 4px; cursor: pointer;
-      width: 100%;
+    .nukes-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
     }
-    #nukes-ui h3 { margin-top: 0; }
+    .nukes-row input[type="number"], .nukes-row textarea {
+      flex: 1;
+      padding: 6px;
+      border-radius: 5px;
+      border: none;
+      font-size: 14px;
+    }
+    .nukes-row input[type="checkbox"] {
+      transform: scale(1.2);
+    }
+    textarea {
+      width: 100%;
+      resize: vertical;
+    }
+    #start-bot {
+      width: 100%;
+      padding: 10px;
+      background: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+    }
     #nukes-close {
-      position: absolute; top: 5px; right: 10px; cursor: pointer;
-      color: red; font-weight: bold;
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      color: #ff5252;
+      font-weight: bold;
+      cursor: pointer;
     }
   `;
+
+  const unitRows = [
+    { label: "Lanceiros (sp)", name: "spear", id: "sp" },
+    { label: "Espadas (sw)", name: "sword", id: "sw" },
+    { label: "Machados (ax)", name: "axe", id: "ax" },
+    { label: "Batedores (scout)", name: "spy", id: "scout" },
+    { label: "Cavalaria leve", name: "light", id: "light" },
+    { label: "Arietes", name: "ram", id: "ram" },
+    { label: "Catapultas (cat)", name: "catapult", id: "cat" },
+  ];
 
   const html = `
     <div id="nukes-ui">
       <div id="nukes-close">X</div>
       <h3>Nukes</h3>
-      <label>Lanceiros (sp):</label>
-      <input type="number" id="sp" value="0">
-      <label>Espadas (sw):</label>
-      <input type="number" id="sw" value="0">
-      <label>Machados (ax):</label>
-      <input type="number" id="ax" value="0">
-      <label>Batedores (scout):</label>
-      <input type="number" id="scout" value="0">
-      <label>Tropas Leves (light):</label>
-      <input type="number" id="light" value="0">
-      <label>Aríetes (ram):</label>
-      <input type="number" id="ram" value="0">
-      <label>Catapultas (cat):</label>
-      <input type="number" id="cat" value="0">
+      ${unitRows.map(u => `
+        <label>${u.label}</label>
+        <div class="nukes-row">
+          <input type="number" id="${u.id}" value="0">
+          <label><input type="checkbox" id="${u.id}_all"> Todas</label>
+        </div>
+      `).join('')}
+
       <label>Coordenadas (uma por linha):</label>
-      <textarea id="coords" rows="5"></textarea>
+      <textarea id="coords" rows="4">495|548\n500|581</textarea>
+
       <label>Tempo entre ataques (ms):</label>
       <input type="number" id="tempo" value="500">
+
       <button id="start-bot">Iniciar</button>
     </div>
   `;
@@ -65,22 +112,24 @@
   };
 
   document.getElementById('start-bot').onclick = function () {
-    const sp = parseInt(document.getElementById('sp').value);
-    const sw = parseInt(document.getElementById('sw').value);
-    const ax = parseInt(document.getElementById('ax').value);
-    const scout = parseInt(document.getElementById('scout').value);
-    const light = parseInt(document.getElementById('light').value);
-    const ram = parseInt(document.getElementById('ram').value);
-    const cat = parseInt(document.getElementById('cat').value);
-    const coordsRaw = document.getElementById('coords').value;
     const tempo = parseInt(document.getElementById('tempo').value);
+    const coordsRaw = document.getElementById('coords').value;
     const coords = coordsRaw.split('\n').map(c => c.trim()).filter(c => c);
 
+    const unidades = {};
+    unitRows.forEach(({ name, id }) => {
+      const usarTodas = document.getElementById(id + '_all').checked;
+      const inputValor = parseInt(document.getElementById(id).value);
+      const campo = document.getElementsByName(name)[0];
+      const max = parseInt(campo?.getAttribute('data-all') || campo?.value || 0);
+      unidades[name] = usarTodas ? max : inputValor;
+    });
+
     alert("Bot iniciado com " + coords.length + " coordenadas.");
-    iniciarAtaques(sp, sw, ax, scout, light, ram, cat, coords, tempo);
+    iniciarAtaques(unidades, coords, tempo);
   };
 
-  function iniciarAtaques(sp, sw, ax, scout, light, ram, cat, coords, tempo) {
+  function iniciarAtaques(unidades, coords, tempo) {
     let i = 0;
 
     function enviarProxima() {
@@ -89,21 +138,20 @@
         return;
       }
 
-      const coord = coords[i].split('|');
-      const x = coord[0];
-      const y = coord[1];
-
-      console.log(`Enviando ataque para ${x}|${y}`);
+      const [x, y] = coords[i].split('|');
+      if (!x || !y) {
+        i++;
+        setTimeout(enviarProxima, tempo);
+        return;
+      }
 
       document.getElementsByName('x')[0].value = x;
       document.getElementsByName('y')[0].value = y;
-      document.getElementsByName('spy')[0].value = scout;
-      document.getElementsByName('light')[0].value = light;
-      document.getElementsByName('ram')[0].value = ram;
-      document.getElementsByName('catapult')[0].value = cat;
-      document.getElementsByName('spear')[0].value = sp;
-      document.getElementsByName('sword')[0].value = sw;
-      document.getElementsByName('axe')[0].value = ax;
+
+      for (let nome in unidades) {
+        const campo = document.getElementsByName(nome)[0];
+        if (campo) campo.value = unidades[nome];
+      }
 
       const botao = document.querySelector("input[type='submit']");
       if (botao) botao.click();
