@@ -86,10 +86,10 @@
           </div>`).join('')}
       </div>
       <label>Coordenadas (separadas por espaço ou nova linha):</label>
-      <textarea id="coords">500|500 501|501</textarea>
+      <textarea id="coords"></textarea>
       <label>Intervalo entre ataques (ms):</label>
       <input type="number" id="tempo" value="500">
-      <label>Repetições por coordenada:</label>
+      <label>Numero de ataques por aldeia inimiga </label>
       <input type="number" id="repeats" value="1" min="1">
       <button id="start-bot">Iniciar</button>
       <div id="credit">Created by Rath</div>
@@ -121,7 +121,7 @@
     const tempo = parseInt(document.getElementById('tempo').value);
     const repeats = parseInt(document.getElementById('repeats').value) || 1;
 
-    alert("Bot iniciado com " + coords.length + " coordenadas.");
+    //alert("Bot iniciado com " + coords.length + " coordenadas.");
     iniciarAtaques(tropas, coords, tempo, repeats);
   };
 
