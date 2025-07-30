@@ -105,7 +105,7 @@
     closeBtn.onclick = () => content.remove();
 
     const info = document.createElement('div');
-    info.innerHTML = '<br><div>Created by Rath</div>';
+    info.innerHTML = '<br><div>Created by Rath</div>><div>Version 2.3</div>'';
 
     function getTotalUnits(unit) {
         const cell = document.querySelector(`#units_home td[class*="unit-item"][data-unit="${unit}"]`);
