@@ -180,7 +180,7 @@
     };
 
     const info = document.createElement('div');
-    info.innerHTML = '<br><div>Created by Rath</div><div>Modified by ChatGPT</div>';
+    info.innerHTML = '<br><div>Created by Rath</div>;
 
     function getTotalUnits(unit) {
         let el = document.getElementById(`units_entry_all_${unit}`);
