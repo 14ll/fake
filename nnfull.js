@@ -15,10 +15,10 @@
         ['axe', 'Machado'],
         ['archer', 'Arqueiro'],
         ['spy', 'Batedor'],
-        ['light', 'Cavalaria Leve'],
-        ['marcher', 'Arqueiro a Cavalo'],
-        ['heavy', 'Cavalaria Pesada'],
-        ['ram', 'Aríete'],
+        ['light', 'Cav. Leve'],
+        ['marcher', 'Arq. Cavalo'],
+        ['heavy', 'Cav. Pesada'],
+        ['ram', 'Ariete'],
         ['catapult', 'Catapulta']
     ];
 
@@ -105,11 +105,15 @@
     closeBtn.onclick = () => content.remove();
 
     const info = document.createElement('div');
-    info.innerHTML = '<br><div>Created by Rath</div><div>Modified by ChatGPT</div>';
+    info.innerHTML = '<br><div>Created by Rath</div>';
 
     function getTotalUnits(unit) {
-        const el = document.getElementById(`units_entry_all_${unit}`);
-        return el ? parseInt(el.textContent) || 0 : 0;
+        const cell = document.querySelector(`#units_home td[class*="unit-item"][data-unit="${unit}"]`);
+        if (cell) {
+            return parseInt(cell.textContent.trim()) || 0;
+        }
+        const alt = document.querySelector(`input[name="${unit}"]`)?.closest('tr')?.querySelector('td[class*="unit"]');
+        return alt ? parseInt(alt.textContent.trim()) || 0 : 0;
     }
 
     function setFieldValue(input, value) {
@@ -150,7 +154,13 @@
             let total = 0;
             units.forEach(([unit]) => {
                 const { input, checkbox } = unitInputs[unit];
-                const qty = checkbox.checked ? getTotalUnits(unit) : parseInt(input.value) || 0;
+                let qty = 0;
+                if (checkbox.checked) {
+                    qty = getTotalUnits(unit);
+                } else {
+                    qty = parseInt(input.value) || 0;
+                }
+
                 if (form[unit]) {
                     setFieldValue(form[unit], qty);
                     total += qty;
@@ -158,7 +168,10 @@
             });
 
             if (total === 0) {
-                alert('Informe ao menos uma unidade para enviar.');
+                console.log(`Aldeia ${x}|${y} sem tropas suficientes. Saltando.`);
+                currentCoord++;
+                rep = 0;
+                setTimeout(enviarAtaque, 300);
                 return;
             }
 
